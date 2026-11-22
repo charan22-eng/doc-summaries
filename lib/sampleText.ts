@@ -1,0 +1,9 @@
+/**
+ * Sample article for the "Try sample text" feature (~250 words).
+ * Covers deep learning in structural biology and scientific discovery.
+ */
+export const SAMPLE_TEXT = `In the summer of 2020, structural biology witnessed a historic milestone that transformed decades of molecular research. For more than fifty years, biochemists struggled with the "protein folding problem"—the monumental challenge of predicting a protein's intricate three-dimensional shape solely from its one-dimensional sequence of amino acids. Because a protein's biological function is governed almost entirely by its spatial conformation, deciphering these molecular geometries traditionally required arduous, multimillion-dollar experiments using X-ray crystallography, cryo-electron microscopy, or nuclear magnetic resonance.
+
+The breakthrough arrived with AlphaFold, an artificial intelligence system engineered by DeepMind that achieved atomic accuracy in structural prediction. By leveraging deep transformer architectures and evolutionary sequence constraints, the model learned how amino acid residues interact across physical space. In successive global CASP competitions, AlphaFold demonstrated predictive precision rivaling labor-intensive physical instrumentation.
+
+Today, predictive structural biology has rapidly expanded across academia and pharmaceutical medicine. Researchers routinely query comprehensive databases containing hundreds of millions of high-confidence computational models, accelerating targeted drug discovery, enzyme engineering for plastic degradation, and vaccine design for emerging pathogens. While dynamic conformational shifts and multi-protein macromolecular complexes still present active research frontiers, computational folding has fundamentally altered our relationship with biological information, turning structural determination from a multi-year experimental bottleneck into a rapid, automated inquiry.`;
