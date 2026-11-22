@@ -2,6 +2,10 @@
 
 Digest is a purpose-built, production-quality AI text summarisation web application powered by Google Gemini models. Designed as a dedicated document analysis tool (not a generic chat interface), it delivers instant, streaming executive summaries with fine-grained control over length and structure.
 
+## Live Application
+- **Live URL**: [https://doc-summaries.vercel.app](https://doc-summaries.vercel.app)
+- **Repository**: [https://github.com/charan22-eng/doc-summaries](https://github.com/charan22-eng/doc-summaries)
+
 ## Architecture in 5 Lines
 1. **Frontend**: Next.js 15 App Router client with responsive two-panel UI, dark mode, accessible ARIA live regions, and real-time word/character statistics.
 2. **Streaming Protocol**: Plain client-side `fetch` consuming `ReadableStream` through `TextDecoder({ stream: true })` with `AbortController` cancellation.
