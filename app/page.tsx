@@ -45,14 +45,14 @@ export default function SummariserPage() {
   const textareaId = useId();
   const errorDescId = useId();
 
-  // Helper to compute word count
+  // Word count calculation
   const countWords = (str: string): number => {
     const trimmed = str.trim();
     if (!trimmed) return 0;
     return trimmed.split(/\s+/).filter(Boolean).length;
   };
 
-  // Live character counter
+  // Character counter state
   const charCount = inputText.length;
   const isTooShort = charCount > 0 && charCount < MIN_CHARS;
   const isTooLong = charCount > MAX_CHARS;
@@ -66,22 +66,22 @@ export default function SummariserPage() {
     };
   }, []);
 
-  // Validate input text
+  // Validation
   const validate = useCallback((): boolean => {
     const trimmed = inputText.trim();
     if (!trimmed) {
-      setValidationError("Please enter some text to summarise.");
+      setValidationError("Please paste or type text to summarise.");
       return false;
     }
     if (trimmed.length < MIN_CHARS) {
       setValidationError(
-        `Text is too short (${trimmed.length} chars). Minimum is ${MIN_CHARS} characters.`
+        `Document is too short (${trimmed.length} characters). Minimum required is ${MIN_CHARS} characters.`
       );
       return false;
     }
     if (trimmed.length > MAX_CHARS) {
       setValidationError(
-        `Text is too long (${trimmed.length} chars). Maximum allowed is ${MAX_CHARS} characters.`
+        `Document exceeds maximum limit of ${MAX_CHARS.toLocaleString()} characters (received ${trimmed.length.toLocaleString()}).`
       );
       return false;
     }
@@ -98,7 +98,6 @@ export default function SummariserPage() {
       return;
     }
 
-    // Abort any existing in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -133,12 +132,10 @@ export default function SummariserPage() {
         signal: abortController.signal,
       });
 
-      // Stale response check: ignore if user started another request
       if (activeRequestIdRef.current !== currentRequestId) {
         return;
       }
 
-      // Check if server returned an error JSON
       if (!response.ok) {
         let errJson: any;
         try {
@@ -162,7 +159,6 @@ export default function SummariserPage() {
         return;
       }
 
-      // Stream the response body chunk by chunk
       if (!response.body) {
         throw new Error("Response body is null");
       }
@@ -175,7 +171,6 @@ export default function SummariserPage() {
       while (true) {
         const { done, value } = await reader.read();
 
-        // Guard against stale response
         if (activeRequestIdRef.current !== currentRequestId) {
           reader.cancel();
           return;
@@ -194,14 +189,12 @@ export default function SummariserPage() {
         }
       }
 
-      // Flush final bytes if any
       const remaining = decoder.decode();
       if (remaining) {
         accumulatedText += remaining;
         setSummaryText(accumulatedText);
       }
 
-      // Finalise completion & calculate statistics
       const outputWordCount = countWords(accumulatedText);
       const reduction =
         inputWordCount > 0
@@ -227,13 +220,12 @@ export default function SummariserPage() {
       }
 
       console.error("Client summarisation streaming error:", err);
-      // Mid-stream network or server abort: preserve partial text
       if (accumulatedText.length > 0) {
         setStreamState("interrupted");
       } else {
         setApiError({
           code: "network_error",
-          message: "Connection lost while generating summary. Please check your network and retry.",
+          message: "Connection interrupted. Please verify your network and retry.",
         });
         setStreamState("error");
       }
@@ -244,7 +236,6 @@ export default function SummariserPage() {
     }
   };
 
-  // Stop button handler
   const handleStop = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -252,7 +243,6 @@ export default function SummariserPage() {
     }
   };
 
-  // Keyboard shortcut: Ctrl+Enter or Cmd+Enter
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
@@ -260,7 +250,6 @@ export default function SummariserPage() {
     }
   };
 
-  // Copy to clipboard
   const handleCopy = async () => {
     if (!summaryText) return;
     try {
@@ -272,7 +261,6 @@ export default function SummariserPage() {
     }
   };
 
-  // Try sample text
   const handleLoadSample = () => {
     setInputText(SAMPLE_TEXT);
     setValidationError(null);
@@ -282,7 +270,6 @@ export default function SummariserPage() {
     }
   };
 
-  // Clear input and state
   const handleClear = () => {
     handleStop();
     setInputText("");
@@ -296,21 +283,20 @@ export default function SummariserPage() {
     }
   };
 
-  // Error message mapper
   const getErrorMessage = (error: ErrorState): string => {
     switch (error.code) {
       case "invalid_input":
         return error.message || "The input text is invalid. Please check and try again.";
       case "rate_limited":
-        return error.message || "Too many requests. Please wait a moment before trying again.";
+        return error.message || "Too many requests. Please pause a moment before retrying.";
       case "payload_too_large":
         return "The document exceeds the maximum payload size (100 KB).";
       case "server_misconfigured":
-        return "The AI engine is temporarily misconfigured. Please try again shortly or contact support.";
+        return "The summarisation service encountered a credential configuration error.";
       case "upstream_failed":
-        return "The AI service is temporarily unavailable. Please retry in a few moments.";
+        return "The AI service is temporarily unavailable. Please try again in a few moments.";
       case "timeout":
-        return "The request timed out. Try choosing a shorter length or a smaller text section.";
+        return "The request timed out. Try a shorter length setting or smaller text section.";
       default:
         return error.message || "An unexpected error occurred while generating the summary.";
     }
@@ -319,57 +305,55 @@ export default function SummariserPage() {
   const isStreamingOrLoading = streamState === "loading" || streamState === "streaming";
 
   return (
-    <main className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
-      {/* Header Bar */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <main className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent-soft)] selection:text-[var(--accent-hover)] font-sans">
+      {/* Top Navigation Bar: Clean, warm, hairline border */}
+      <header className="border-b border-[var(--border)] bg-[var(--bg)]/90 backdrop-blur sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm shadow-indigo-500/20">
+            <div className="w-8 h-8 rounded-md bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center font-serif text-lg font-normal shadow-xs">
               D
             </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
+            <div className="flex items-baseline gap-2">
+              <span className="font-serif text-xl font-normal tracking-tight text-[var(--text)]">
                 Digest
               </span>
-              <span className="hidden sm:inline-block ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40">
-                AI Summariser
+              <span className="hidden sm:inline-block text-xs text-[var(--text-secondary)] font-normal">
+                Text summariser
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-            <span className="hidden md:inline-flex items-center gap-1.5 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-sans px-3 py-1 rounded-pill bg-[var(--accent-soft)] text-[var(--accent-hover)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
               Gemini Flash Lite
             </span>
           </div>
         </div>
       </header>
 
-      {/* Main Two-Panel Section */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      {/* Main Two-Panel Layout */}
+      <div className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start">
-          {/* LEFT PANEL: Source Input & Controls */}
+          {/* LEFT PANEL: Source Input */}
           <section
-            aria-label="Input Document"
-            className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-5 sm:p-6"
+            aria-label="Source document"
+            className="flex flex-col bg-[var(--surface)] rounded-lg border border-[var(--border)] shadow-xs p-6 sm:p-7"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3.5">
               <label
                 htmlFor={textareaId}
-                className="font-semibold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2"
+                className="font-serif text-lg font-normal text-[var(--text)] tracking-tight"
               >
-                Source Document
-                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                  (min {MIN_CHARS} chars)
-                </span>
+                Source document
               </label>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleLoadSample}
                   disabled={isStreamingOrLoading}
-                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors disabled:opacity-50 py-1 px-2 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                  className="text-xs font-sans text-[var(--accent-hover)] hover:text-[var(--accent)] transition-colors disabled:opacity-40 py-1 px-2.5 rounded-md hover:bg-[var(--accent-soft)]/50"
                 >
                   Try sample text
                 </button>
@@ -378,7 +362,7 @@ export default function SummariserPage() {
                     type="button"
                     onClick={handleClear}
                     disabled={isStreamingOrLoading}
-                    className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors disabled:opacity-50 py-1 px-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="text-xs font-sans text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors disabled:opacity-40 py-1 px-2 rounded-md hover:bg-[var(--bg-sunken)]"
                   >
                     Clear
                   </button>
@@ -386,7 +370,7 @@ export default function SummariserPage() {
               </div>
             </div>
 
-            {/* Input Textarea */}
+            {/* Input Textarea Container */}
             <div className="relative">
               <textarea
                 id={textareaId}
@@ -397,67 +381,65 @@ export default function SummariserPage() {
                   if (validationError) setValidationError(null);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Paste or type an article, paper, report, or document to summarise..."
+                placeholder="Paste an article, research paper, report, or draft to summarise..."
                 rows={12}
                 aria-describedby={validationError ? errorDescId : undefined}
-                className={`w-full rounded-xl border bg-slate-50/50 dark:bg-slate-950/50 p-4 text-sm sm:text-base text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-y transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${
+                className={`w-full rounded-md border bg-[var(--bg-subtle)] p-4 text-[15px] sm:text-base text-[var(--text)] placeholder:text-[var(--text-muted)] resize-y transition-all focus:outline-none focus:bg-[var(--surface)] ${
                   validationError || isTooLong
-                    ? "border-red-500 dark:border-red-500 focus:border-red-500"
-                    : "border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500"
+                    ? "border-[var(--danger)] focus:border-[var(--danger)]"
+                    : "border-[var(--border-strong)] focus:border-[var(--accent-hover)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                 }`}
               />
             </div>
 
-            {/* Inline Validation Error */}
+            {/* Inline Validation Notice */}
             {validationError && (
               <p
                 id={errorDescId}
-                className="mt-2 text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1.5 animate-fadeIn"
+                className="mt-2.5 text-xs text-[var(--danger)] flex items-center gap-1.5"
               >
                 <svg
                   className="w-3.5 h-3.5 shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  strokeWidth={2}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                  <circle cx="12" cy="12" r="9" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 {validationError}
               </p>
             )}
 
-            {/* Character & Word Counter */}
-            <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            {/* Counter Row */}
+            <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-secondary)] font-sans">
               <span>{countWords(inputText)} words</span>
               <span
-                className={`font-mono transition-colors ${
+                className={`transition-colors font-mono ${
                   isTooLong
-                    ? "text-red-600 dark:text-red-400 font-bold"
+                    ? "text-[var(--danger)] font-semibold"
                     : isTooShort
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-slate-500 dark:text-slate-400"
+                    ? "text-[var(--warning)]"
+                    : "text-[var(--text-muted)]"
                 }`}
               >
                 {charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}
               </span>
             </div>
 
-            {/* Configuration Options */}
-            <div className="mt-6 pt-5 border-t border-slate-200/80 dark:border-slate-800/80 space-y-4">
+            {/* Segmented Options */}
+            <div className="mt-6 pt-5 border-t border-[var(--border)] space-y-4">
               {/* Length Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                  Length
+                <label className="block text-xs font-sans text-[var(--text-secondary)] mb-2">
+                  Summary length
                 </label>
                 <div
                   role="radiogroup"
-                  aria-label="Summary Length"
-                  className="grid grid-cols-3 gap-2"
+                  aria-label="Summary length"
+                  className="p-1 bg-[var(--bg-subtle)] rounded-md border border-[var(--border)] grid grid-cols-3 gap-1"
                 >
                   {LENGTH_OPTIONS.map((opt) => (
                     <button
@@ -467,10 +449,10 @@ export default function SummariserPage() {
                       aria-checked={length === opt}
                       disabled={isStreamingOrLoading}
                       onClick={() => setLength(opt)}
-                      className={`py-2 px-3 text-xs sm:text-sm font-medium rounded-lg border transition-all text-center capitalize ${
+                      className={`py-1.5 px-3 text-xs sm:text-sm font-sans rounded-sm transition-all text-center capitalize ${
                         length === opt
-                          ? "bg-indigo-50 border-indigo-500 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-500 dark:text-indigo-300 shadow-sm"
-                          : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
+                          ? "bg-[var(--surface)] text-[var(--text)] shadow-xs border border-[var(--border)] font-medium"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-sunken)]/60"
                       }`}
                     >
                       {opt}
@@ -481,13 +463,13 @@ export default function SummariserPage() {
 
               {/* Format Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                  Format
+                <label className="block text-xs font-sans text-[var(--text-secondary)] mb-2">
+                  Output format
                 </label>
                 <div
                   role="radiogroup"
-                  aria-label="Summary Format"
-                  className="grid grid-cols-3 gap-2"
+                  aria-label="Output format"
+                  className="p-1 bg-[var(--bg-subtle)] rounded-md border border-[var(--border)] grid grid-cols-3 gap-1"
                 >
                   {FORMAT_OPTIONS.map((opt) => (
                     <button
@@ -497,10 +479,10 @@ export default function SummariserPage() {
                       aria-checked={format === opt}
                       disabled={isStreamingOrLoading}
                       onClick={() => setFormat(opt)}
-                      className={`py-2 px-3 text-xs sm:text-sm font-medium rounded-lg border transition-all text-center capitalize ${
+                      className={`py-1.5 px-3 text-xs sm:text-sm font-sans rounded-sm transition-all text-center capitalize ${
                         format === opt
-                          ? "bg-indigo-50 border-indigo-500 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-500 dark:text-indigo-300 shadow-sm"
-                          : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
+                          ? "bg-[var(--surface)] text-[var(--text)] shadow-xs border border-[var(--border)] font-medium"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--bg-sunken)]/60"
                       }`}
                     >
                       {opt}
@@ -510,10 +492,10 @@ export default function SummariserPage() {
               </div>
             </div>
 
-            {/* Action Buttons Row */}
-            <div className="mt-6 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span className="text-xs text-slate-400 dark:text-slate-500 order-2 sm:order-1">
-                Press <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-mono text-[10px]">Ctrl+Enter</kbd> to summarise
+            {/* Bottom Actions Row */}
+            <div className="mt-6 pt-4 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-[var(--text-muted)] order-2 sm:order-1 font-sans">
+                Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-sunken)] text-[var(--text-secondary)] border border-[var(--border-strong)] font-mono text-[10px]">Ctrl+Enter</kbd> to summarise
               </span>
 
               <div className="w-full sm:w-auto flex items-center gap-2 order-1 sm:order-2">
@@ -521,36 +503,23 @@ export default function SummariserPage() {
                   <button
                     type="button"
                     onClick={handleStop}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-950/70 transition-colors"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md font-sans font-medium text-sm text-[var(--accent-hover)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)]/80 border border-[var(--accent-hover)]/30 transition-all active:scale-[0.98]"
                   >
-                    <svg
-                      className="w-4 h-4 fill-current"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                       <rect x="6" y="6" width="12" height="12" rx="2" />
                     </svg>
-                    Stop
+                    Stop generating
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={handleSummarise}
                     disabled={!inputText.trim() || isTooLong}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-indigo-500/20 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2 rounded-md font-sans font-medium text-sm text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-45 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-xs"
                   >
                     Summarise
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                   </button>
                 )}
@@ -558,22 +527,22 @@ export default function SummariserPage() {
             </div>
           </section>
 
-          {/* RIGHT PANEL: Output & Result */}
+          {/* RIGHT PANEL: Output Result */}
           <section
             role="region"
-            aria-label="Summary Output"
-            className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-5 sm:p-6 min-h-[460px] relative"
+            aria-label="Summary output"
+            className="flex flex-col bg-[var(--surface)] rounded-lg border border-[var(--border)] shadow-xs p-6 sm:p-7 min-h-[500px] relative"
           >
-            {/* Header: Title and Actions (Copy / Done feedback) */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-sm text-slate-900 dark:text-slate-100">
-                  Summary Result
+            {/* Header: Title and Copy Button */}
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-serif text-lg font-normal text-[var(--text)] tracking-tight">
+                  Summary
                 </h2>
                 {streamState === "streaming" && (
-                  <span className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
-                    Streaming...
+                  <span className="inline-flex items-center gap-1.5 text-xs text-[var(--accent-hover)] font-sans">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-ping" />
+                    Streaming
                   </span>
                 )}
               </div>
@@ -582,40 +551,21 @@ export default function SummariserPage() {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
-                  aria-label={copied ? "Copied to clipboard" : "Copy summary to clipboard"}
+                  className="inline-flex items-center gap-1.5 text-xs font-sans font-medium px-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg-subtle)] text-[var(--text)] transition-all shadow-xs"
+                  aria-label={copied ? "Copied summary to clipboard" : "Copy summary to clipboard"}
                 >
                   {copied ? (
                     <>
-                      <svg
-                        className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
+                      <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
+                      <span className="text-[var(--success)]">Copied</span>
                     </>
                   ) : (
                     <>
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
+                      <svg className="w-3.5 h-3.5 text-[var(--text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <rect x="8" y="8" width="12" height="12" rx="2" />
+                        <path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" />
                       </svg>
                       <span>Copy</span>
                     </>
@@ -624,29 +574,16 @@ export default function SummariserPage() {
               )}
             </div>
 
-            {/* Error Banner with Dismiss and Retry */}
+            {/* Error Notification */}
             {apiError && (
               <div
                 role="alert"
-                className="mt-4 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-900 dark:text-red-200 text-sm flex items-start justify-between gap-3 animate-fadeIn"
+                className="mt-4 p-4 rounded-md bg-[var(--bg-sunken)] border border-[var(--danger)]/30 text-[var(--text)] text-sm flex items-start justify-between gap-3"
               >
                 <div className="flex items-start gap-2.5">
-                  <svg
-                    className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+                  <span className="text-[var(--danger)] font-medium mt-0.5">•</span>
                   <div>
-                    <strong className="font-semibold block">Summarisation Error</strong>
-                    <span className="text-xs text-red-700 dark:text-red-300">
+                    <span className="text-xs text-[var(--text)] font-sans leading-relaxed">
                       {getErrorMessage(apiError)}
                     </span>
                   </div>
@@ -655,23 +592,17 @@ export default function SummariserPage() {
                   <button
                     type="button"
                     onClick={handleSummarise}
-                    className="px-2.5 py-1 text-xs font-medium rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
+                    className="px-2.5 py-1 text-xs font-sans font-medium rounded-md bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)] transition-colors"
                   >
                     Retry
                   </button>
                   <button
                     type="button"
                     onClick={() => setApiError(null)}
-                    aria-label="Dismiss error"
-                    className="p-1 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded"
+                    aria-label="Dismiss message"
+                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] rounded"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    ✕
                   </button>
                 </div>
               </div>
@@ -681,30 +612,18 @@ export default function SummariserPage() {
             {streamState === "interrupted" && (
               <div
                 role="status"
-                className="mt-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-center justify-between gap-3 animate-fadeIn"
+                className="mt-4 p-3 rounded-md bg-[var(--bg-sunken)] border border-[var(--warning)]/30 text-xs sm:text-sm flex items-center justify-between gap-3 font-sans"
               >
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-amber-600 shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <span>Generation interrupted. Showing partial summary.</span>
+                <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                  <span className="text-[var(--warning)] font-bold">•</span>
+                  <span>Generation stopped. Showing partial summary.</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleSummarise}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors shrink-0"
+                  className="px-2.5 py-1 text-xs font-sans font-medium rounded-md bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)] transition-colors shrink-0"
                 >
-                  Retry
+                  Resume
                 </button>
               </div>
             )}
@@ -714,30 +633,20 @@ export default function SummariserPage() {
               aria-live="polite"
               className="flex-1 py-4 overflow-y-auto flex flex-col justify-start"
             >
-              {/* State 1: Idle (Empty state) */}
+              {/* State 1: Idle (Quiet empty state) */}
               {streamState === "idle" && !summaryText && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-400 dark:text-slate-500 space-y-3 min-h-[280px]">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-[var(--text-muted)] space-y-3 min-h-[300px]">
+                  <div className="w-10 h-10 rounded-md bg-[var(--bg-sunken)] flex items-center justify-center text-[var(--text-muted)]">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                   </div>
                   <div>
-                    <p className="font-medium text-slate-700 dark:text-slate-300 text-sm">
+                    <p className="font-serif text-base font-normal text-[var(--text)]">
                       Your summary will appear here
                     </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mt-1">
-                      Paste a document, select your length and format preferences, and click Summarise.
+                    <p className="text-xs text-[var(--text-secondary)] max-w-xs mt-1.5 font-sans leading-relaxed">
+                      Paste a document, select your preferred length and format, and click Summarise.
                     </p>
                   </div>
                 </div>
@@ -745,35 +654,25 @@ export default function SummariserPage() {
 
               {/* State 2: Loading before first token */}
               {streamState === "loading" && (
-                <div className="flex-1 flex flex-col justify-center items-center py-12 space-y-4">
-                  <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400">
+                <div className="flex-1 flex flex-col justify-center items-center py-14 space-y-4 font-sans">
+                  <div className="flex items-center gap-2.5 text-[var(--accent-hover)]">
                     <svg
-                      className="animate-spin h-5 w-5"
+                      className="animate-spin h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span className="text-sm font-medium">Reading your text...</span>
+                    <span className="font-serif text-base font-normal text-[var(--text-secondary)]">
+                      Reading document...
+                    </span>
                   </div>
-                  {/* Subtle skeleton bars */}
-                  <div className="w-full max-w-md space-y-2.5 opacity-60">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-3/4" />
-                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-full" />
-                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse w-5/6" />
+                  <div className="w-full max-w-sm space-y-2 opacity-50">
+                    <div className="h-3.5 bg-[var(--bg-sunken)] rounded-sm animate-pulse w-3/4" />
+                    <div className="h-3.5 bg-[var(--bg-sunken)] rounded-sm animate-pulse w-full" />
+                    <div className="h-3.5 bg-[var(--bg-sunken)] rounded-sm animate-pulse w-5/6" />
                   </div>
                 </div>
               )}
@@ -792,26 +691,26 @@ export default function SummariserPage() {
               )}
             </div>
 
-            {/* Bottom Stats Line: words in, words out, % shorter */}
+            {/* Bottom Stats Line: words in, words out, % reduction */}
             {stats && (streamState === "done" || streamState === "interrupted") && (
-              <div className="mt-4 pt-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
-                <div className="flex items-center gap-3">
+              <div className="mt-4 pt-3 border-t border-[var(--border)] flex flex-wrap items-center justify-between text-xs text-[var(--text-secondary)] gap-2 font-sans">
+                <div className="flex items-center gap-2">
                   <span>
-                    <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    <strong className="font-medium text-[var(--text)]">
                       {stats.wordsIn.toLocaleString()}
                     </strong>{" "}
                     words in
                   </span>
                   <span>→</span>
                   <span>
-                    <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                    <strong className="font-medium text-[var(--text)]">
                       {stats.wordsOut.toLocaleString()}
                     </strong>{" "}
                     words out
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded">
-                  {stats.reductionPercent}% shorter
+                <div className="inline-flex items-center gap-1 font-sans font-medium text-[var(--accent-hover)] bg-[var(--accent-soft)] px-2.5 py-0.5 rounded-pill">
+                  {stats.reductionPercent}% reduction
                 </div>
               </div>
             )}
@@ -820,8 +719,8 @@ export default function SummariserPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-4 text-center text-xs text-slate-400 dark:text-slate-500">
-        Digest — Purpose-Built AI Summarisation Engine • Production Grade
+      <footer className="border-t border-[var(--border)] py-4 text-center text-xs text-[var(--text-muted)] font-sans">
+        Digest — quiet, purpose-built document summarisation
       </footer>
     </main>
   );

@@ -1,27 +1,125 @@
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..500;1,6..72,400&family=Inter:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  /* Surfaces (light) */
+  --bg: #FAF9F5; /* page background (ivory) */
+  --bg-subtle: #F4F3EE; /* sidebar, alternating sections */
+  --bg-sunken: #EDEBE3; /* wells, code blocks, hover fills */
+  --surface: #FFFFFF; /* cards, inputs, popovers */
+  --surface-raised: #FFFFFF;
+
+  /* Text */
+  --text: #141413; /* primary (slate, not black) */
+  --text-secondary: #5E5D59; /* body secondary, 6:1 on --bg */
+  --text-muted: #87867F; /* placeholders, meta */
+
+  /* Borders */
+  --border: rgba(20, 20, 19, 0.12); /* default hairline */
+  --border-strong: rgba(20, 20, 19, 0.22); /* inputs on hover, emphasized dividers */
+
+  /* Accent (terracotta / clay) */
+  --accent: #C15F3C; /* button fill, key highlights */
+  --accent-hover: #AE5630; /* hover/pressed; also use for accent text */
+  --accent-soft: #F3E3DA; /* tinted backgrounds, selected states, badges */
+  --on-accent: #FFFFFF;
+
+  /* Status */
+  --success: #4F7A4A;
+  --warning: #B7791F;
+  --danger: #B3402A;
+
+  /* Shape */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px; /* default: buttons, inputs, small cards */
+  --radius-lg: 16px; /* cards, panels */
+  --radius-xl: 24px; /* hero panels, composer */
+  --radius-pill: 999px;
+
+  /* Elevation: warm, very soft */
+  --shadow-xs: 0 1px 2px rgba(20, 20, 19, 0.04);
+  --shadow-sm: 0 2px 8px rgba(20, 20, 19, 0.05), 0 0 0 0.5px rgba(20, 20, 19, 0.08);
+  --shadow-md: 0 8px 24px rgba(20, 20, 19, 0.08);
+  --shadow-lg: 0 16px 48px rgba(20, 20, 19, 0.12);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 320ms;
+
+  /* Type */
+  --font-serif: "Newsreader", "Source Serif 4", "Lora", Georgia, serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Dark mode: warm charcoal, never blue-black */
+:root[data-theme="dark"] {
+  --bg: #262624;
+  --bg-subtle: #1F1E1D;
+  --bg-sunken: #1A1918;
+  --surface: #30302E;
+  --surface-raised: #3A3938;
+  --text: #FAF9F5;
+  --text-secondary: #C2C0B6;
+  --text-muted: #9C9A92;
+  --border: rgba(250, 249, 245, 0.12);
+  --border-strong: rgba(250, 249, 245, 0.22);
+  --accent: #D97757;
+  --accent-hover: #E58A6C;
+  --accent-soft: rgba(217, 119, 87, 0.16);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(250, 249, 245, 0.08);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #090d16;
-    --foreground: #f1f5f9;
+  :root:not([data-theme="light"]) {
+    --bg: #262624;
+    --bg-subtle: #1F1E1D;
+    --bg-sunken: #1A1918;
+    --surface: #30302E;
+    --surface-raised: #3A3938;
+    --text: #FAF9F5;
+    --text-secondary: #C2C0B6;
+    --text-muted: #9C9A92;
+    --border: rgba(250, 249, 245, 0.12);
+    --border-strong: rgba(250, 249, 245, 0.22);
+    --accent: #D97757;
+    --accent-hover: #E58A6C;
+    --accent-soft: rgba(217, 119, 87, 0.16);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(250, 249, 245, 0.08);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
   }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  color: var(--text);
+  background-color: var(--bg);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom focus ring styling for accessibility */
+/* Accessible focus ring */
 *:focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--accent-hover);
   outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

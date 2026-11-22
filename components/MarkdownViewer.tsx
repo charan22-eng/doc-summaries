@@ -8,8 +8,8 @@ interface MarkdownViewerProps {
 }
 
 /**
- * Lightweight, robust Markdown renderer for paragraphs, bullet lists, and bold headlines (**text**).
- * Avoids heavy runtime dependencies while guaranteeing clean, unescaped visual rendering.
+ * Editorial Markdown renderer aligned with the Claude visual language:
+ * warm serif headings, clean body type, terracotta accents, calm pacing.
  */
 export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, isStreaming }) => {
   const renderedElements = useMemo(() => {
@@ -24,11 +24,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, isStrea
         elements.push(
           <ul
             key={`${keyPrefix}-ul`}
-            className="my-3 space-y-2 list-none pl-0 text-slate-800 dark:text-slate-200"
+            className="my-3 space-y-2.5 list-none pl-0 text-[var(--text)]"
           >
             {currentBulletGroup.map((item, idx) => (
-              <li key={`${keyPrefix}-li-${idx}`} className="flex items-start gap-2.5 leading-relaxed">
-                <span className="inline-block mt-2 h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0" />
+              <li key={`${keyPrefix}-li-${idx}`} className="flex items-start gap-3 leading-relaxed text-[15px] sm:text-base">
+                <span className="inline-block mt-2.5 h-1.5 w-1.5 rounded-full bg-[var(--accent)] shrink-0 opacity-85" />
                 <span className="flex-1">{renderFormattedText(item)}</span>
               </li>
             ))}
@@ -54,7 +54,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, isStrea
           elements.push(
             <h3
               key={`h-${idx}`}
-              className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-4 mb-2 first:mt-0 tracking-tight"
+              className="font-serif text-lg md:text-xl font-normal text-[var(--text)] mt-4 mb-2 first:mt-0 tracking-tight"
             >
               {headlineText}
             </h3>
@@ -63,7 +63,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, isStrea
           elements.push(
             <p
               key={`p-${idx}`}
-              className="my-2.5 text-slate-800 dark:text-slate-200 leading-relaxed text-sm md:text-base"
+              className="my-3 text-[var(--text)] leading-relaxed text-[15px] sm:text-base"
             >
               {renderFormattedText(trimmed)}
             </p>
@@ -77,11 +77,11 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, isStrea
   }, [content]);
 
   return (
-    <div className="prose-content w-full font-sans antialiased">
+    <div className="prose-content w-full font-sans antialiased text-[var(--text)]">
       {renderedElements}
       {isStreaming && (
         <span
-          className="inline-block w-2 h-4 ml-1 bg-indigo-600 dark:bg-indigo-400 animate-pulse align-middle"
+          className="inline-block w-1.5 h-4 ml-1.5 bg-[var(--accent)] animate-pulse align-middle rounded-xs"
           aria-hidden="true"
         />
       )}
@@ -97,7 +97,7 @@ function renderFormattedText(text: string): React.ReactNode {
   return parts.map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
       return (
-        <strong key={index} className="font-semibold text-slate-950 dark:text-white">
+        <strong key={index} className="font-medium text-[var(--text)]">
           {part.slice(2, -2)}
         </strong>
       );

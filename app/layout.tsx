@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Digest — AI Text Summariser",
+  title: "Digest — Purpose-Built AI Text Summariser",
   description:
-    "A purpose-built, high-performance text summarisation engine powered by Google Gemini.",
+    "A quiet, editorial text summarisation engine powered by Google Gemini.",
   icons: {
     icon: "/favicon.ico",
   },
@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+      <body className="min-h-screen bg-[var(--bg)] text-[var(--text)] antialiased selection:bg-[var(--accent-soft)] selection:text-[var(--accent-hover)]">
         {children}
       </body>
     </html>
