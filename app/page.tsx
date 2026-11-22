@@ -339,7 +339,7 @@ export default function SummariserPage() {
           <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
             <span className="hidden md:inline-flex items-center gap-1.5 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              Claude 3.5 Haiku
+              Gemini 2.0 Flash
             </span>
           </div>
         </div>

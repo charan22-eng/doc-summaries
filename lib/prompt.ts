@@ -36,4 +36,4 @@ export function wrapUserContent(text: string): string {
 }
 
 export const MAX_OUTPUT_TOKENS = 1024;
-export const DEFAULT_ANTHROPIC_MODEL = "claude-3-5-haiku-20241022";
+export const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";

@@ -1,4 +1,4 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { z } from "zod";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/lib/limits";
 import {
   buildSystemPrompt,
-  DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GEMINI_MODEL,
   MAX_OUTPUT_TOKENS,
   wrapUserContent,
 } from "@/lib/prompt";
@@ -227,13 +227,13 @@ export async function POST(req: Request) {
     );
   }
 
-  // 6. Check Provider Configuration
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // 6. Check Provider Configuration (Google Generative AI / Gemini)
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   const isMockMode = process.env.USE_MOCK_LLM === "true" || apiKey === "mock-key";
 
   if (!apiKey && !isMockMode) {
     // Missing API key: generic client message, detailed server log
-    console.error("[Digest Server Error] ANTHROPIC_API_KEY is not defined in environment variables.");
+    console.error("[Digest Server Error] GOOGLE_GENERATIVE_AI_API_KEY is not defined in environment variables.");
     return Response.json(
       {
         error: {
@@ -253,30 +253,30 @@ export async function POST(req: Request) {
     tokenIterator = generateMockTokens(length, format);
   } else {
     try {
-      const anthropic = createAnthropic({
+      const google = createGoogleGenerativeAI({
         apiKey: apiKey!,
       });
-      const modelId = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
+      const modelId = process.env.GEMINI_MODEL || process.env.GOOGLE_MODEL || DEFAULT_GEMINI_MODEL;
 
       const result = streamText({
-        model: anthropic(modelId),
+        model: google(modelId),
         system: buildSystemPrompt(length, format),
         prompt: wrapUserContent(text),
         maxTokens: MAX_OUTPUT_TOKENS,
         onError({ error }) {
           capturedStreamError = error;
-          console.error("[Digest Provider stream error]:", error);
+          console.error("[Digest Gemini Provider stream error]:", error);
         },
       });
 
       tokenIterator = result.textStream[Symbol.asyncIterator]();
     } catch (initErr: any) {
-      console.error("[Digest Provider init error]:", initErr);
+      console.error("[Digest Gemini Provider init error]:", initErr);
       return Response.json(
         {
           error: {
             code: "upstream_failed",
-            message: "Failed to initialize communication with the AI provider.",
+            message: "Failed to initialize communication with Google Gemini API.",
           },
         },
         { status: 502 }
@@ -292,21 +292,23 @@ export async function POST(req: Request) {
       throw capturedStreamError;
     }
   } catch (primeErr: any) {
-    console.error("[Digest Stream Priming Error]:", primeErr);
+    console.error("[Digest Gemini Stream Priming Error]:", primeErr);
     const errString = primeErr?.message || String(primeErr);
 
     const isAuth =
       errString.includes("401") ||
+      errString.includes("403") ||
+      errString.includes("API_KEY_INVALID") ||
       errString.includes("api_key") ||
       errString.includes("authentication") ||
-      errString.includes("invalid_api_key");
+      errString.includes("API key not valid");
 
     if (isAuth) {
       return Response.json(
         {
           error: {
             code: "server_misconfigured",
-            message: "The AI provider rejected credentials. Please check server configuration.",
+            message: "The Google Gemini API credentials are invalid. Please check server configuration.",
           },
         },
         { status: 500 }
@@ -319,7 +321,7 @@ export async function POST(req: Request) {
         {
           error: {
             code: "timeout",
-            message: "Upstream AI provider timed out while generating summary.",
+            message: "Google Gemini timed out while generating summary.",
           },
         },
         { status: 504 }
@@ -330,7 +332,7 @@ export async function POST(req: Request) {
       {
         error: {
           code: "upstream_failed",
-          message: "The AI provider was unable to generate a summary. Please try again.",
+          message: "Google Gemini was unable to generate a summary. Please try again.",
         },
       },
       { status: 502 }

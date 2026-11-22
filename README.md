@@ -1,25 +1,21 @@
 # Digest — AI Text Summariser
 
-Digest is a purpose-built, production-quality AI text summarisation web application powered by Anthropic's Claude models. Designed as a dedicated document analysis tool (not a generic chat interface), it delivers instant, streaming executive summaries with fine-grained control over length and structure.
-
-## Live Application
-- **Live URL**: *(Configured upon production deployment)*
-- **Repository**: [https://github.com/resma-digest/ai-summariser](https://github.com/resma-digest/ai-summariser)
+Digest is a purpose-built, production-quality AI text summarisation web application powered by Google Gemini models. Designed as a dedicated document analysis tool (not a generic chat interface), it delivers instant, streaming executive summaries with fine-grained control over length and structure.
 
 ## Architecture in 5 Lines
 1. **Frontend**: Next.js 15 App Router client with responsive two-panel UI, dark mode, accessible ARIA live regions, and real-time word/character statistics.
 2. **Streaming Protocol**: Plain client-side `fetch` consuming `ReadableStream` through `TextDecoder({ stream: true })` with `AbortController` cancellation.
 3. **Server Gateway**: Next.js route handler (`app/api/summarise/route.ts`) on `nodejs` runtime with a 30s execution ceiling and early 100 KB payload checks.
 4. **Resilience & Rate Limiting**: In-memory sliding-window IP rate limiting (10 req/min) returning 429 with `Retry-After` headers.
-5. **AI Integration**: Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) utilized strictly server-side with stream priming to catch upstream provider errors prior to HTTP 200 emission.
+5. **AI Integration**: Vercel AI SDK (`ai` + `@ai-sdk/google`) utilized strictly server-side with stream priming to catch upstream provider errors prior to HTTP 200 emission.
 
 ## Environment Variables
 The application requires the following environment variables (server-side only; never exposed with `NEXT_PUBLIC_`):
 
 | Variable | Required | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `ANTHROPIC_API_KEY` | **Yes** (Prod) | *None* | Anthropic API key used to execute Claude models. |
-| `ANTHROPIC_MODEL` | No | `claude-3-5-haiku-20241022` | Specific Anthropic model ID to invoke. |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | **Yes** (Prod) | *None* | Google Gemini API key used to execute models. Also recognizes `GEMINI_API_KEY`. |
+| `GEMINI_MODEL` | No | `gemini-2.0-flash` | Specific Gemini model ID to invoke (`gemini-2.0-flash` or `gemini-1.5-flash`). |
 | `USE_MOCK_LLM` | No | `false` | When set to `"true"`, enables simulated streaming for offline testing without an active API key. |
 
 See `.env.example` for a ready-to-copy template.
@@ -28,7 +24,7 @@ See `.env.example` for a ready-to-copy template.
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/resma-digest/ai-summariser.git
+git clone https://github.com/charanrao/ai-summariser.git
 cd ai-summariser
 ```
 
@@ -42,9 +38,9 @@ Create a local `.env.local` file:
 ```bash
 cp .env.example .env.local
 ```
-Add your Anthropic API key to `.env.local`:
+Add your Gemini API key to `.env.local`:
 ```env
-ANTHROPIC_API_KEY=sk-ant-api03-...
+GOOGLE_GENERATIVE_AI_API_KEY=AIzaSy...
 ```
 
 ### 4. Run development server

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Digest — AI Text Summariser",
   description:
-    "A purpose-built, high-performance text summarisation engine powered by Anthropic Claude.",
+    "A purpose-built, high-performance text summarisation engine powered by Google Gemini.",
   icons: {
     icon: "/favicon.ico",
   },
